@@ -26,3 +26,8 @@ body.prank-revealed{overflow:hidden}
 .contact-links a:hover{color:var(--lime)}
 #rickVideo{max-height:62vh}
 @media(max-width:800px){.skills-heading{grid-template-columns:1fr;gap:20px}.skills-heading .section-note{justify-self:start}.skill-columns{grid-template-columns:1fr;gap:32px}.portfolio-projects .project-card{min-height:270px}.contact-links{gap:14px}}
+
+/* "Leave" button: gray and unclickable during its 18s timeout (controlled by script.js). */
+.escape-button[data-locked="true"]{background:#2a2c33;color:#7b7e87;border-color:#3d4049;cursor:not-allowed;opacity:.7}
+.escape-button[data-locked="true"]:hover{border-color:#3d4049;color:#7b7e87}
+.escape-button[data-locked="true"]::after{content:" (" attr(data-wait) "s)"}
