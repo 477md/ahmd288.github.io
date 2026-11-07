@@ -52,6 +52,35 @@
     }
   }, { threshold: [0.15] });
 
+  // The "Leave" button stays locked (gray, with a countdown) for 18s after the reveal appears.
+  const ESCAPE_LOCK_MS = 18000;
+  let escapeLockTimer = null;
+
+  function unlockEscape() {
+    if (escapeLockTimer !== null) window.clearInterval(escapeLockTimer);
+    escapeLockTimer = null;
+    escapeButton.disabled = false;
+    delete escapeButton.dataset.locked;
+    delete escapeButton.dataset.wait;
+  }
+
+  function lockEscape() {
+    if (escapeLockTimer !== null) window.clearInterval(escapeLockTimer);
+    const end = Date.now() + ESCAPE_LOCK_MS;
+    escapeButton.disabled = true;
+    escapeButton.dataset.locked = 'true';
+    const update = () => {
+      const left = end - Date.now();
+      if (left <= 0) {
+        unlockEscape();
+        return;
+      }
+      escapeButton.dataset.wait = String(Math.ceil(left / 1000));
+    };
+    update();
+    escapeLockTimer = window.setInterval(update, 250);
+  }
+
   function startPrank({ destination = null } = {}) {
     if (triggered) return;
     triggered = true;
@@ -73,6 +102,7 @@
       document.body.classList.remove('prank-pending');
       document.body.classList.add('prank-revealed');
       observer.observe(video);
+      lockEscape();
     }, 3000);
   }
 
@@ -102,6 +132,7 @@
   }, true);
 
   escapeButton.addEventListener('click', () => {
+    if (escapeButton.dataset.locked === 'true') return;
     if (revealTimer !== null) window.clearTimeout(revealTimer);
     video.pause();
     video.currentTime = 0;
