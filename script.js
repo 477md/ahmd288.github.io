@@ -87,18 +87,26 @@
     readyIndicator.style.display = 'none';
     document.body.classList.add('prank-pending');
 
-    // Prime playback during the trusted click. It starts muted; audio is enabled
-    // when the video becomes visible after the three-second delay.
+    // Unlock playback during the trusted click, then pause straight away so the video
+    // does NOT run during the three-second delay. It starts from 0:00 when the reveal shows.
+    // (The video keeps buffering while paused, so it is ready to go.)
     video.muted = true;
-    video.currentTime = 0;
     const attempt = video.play();
-    if (attempt && typeof attempt.catch === 'function') attempt.catch(() => {});
+    if (attempt && typeof attempt.then === 'function') {
+      attempt.then(() => {
+        if (!revealed && !document.body.classList.contains('prank-revealed')) {
+          video.pause();
+          video.currentTime = 0;
+        }
+      }).catch(() => {});
+    }
 
     if (destination) {
       destination.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
 
     revealTimer = window.setTimeout(() => {
+      if (video.paused) video.currentTime = 0;
       document.body.classList.remove('prank-pending');
       document.body.classList.add('prank-revealed');
       observer.observe(video);
