@@ -9,6 +9,100 @@
   <link rel="preload" href="/assets/rickroll.mp4" as="video" type="video/mp4">
   <link rel="stylesheet" href="/styles.css">
   <script src="/script.js" defer></script>
+  <script>
+    // Show the browser's "Leave site?" dialog on tab close / Ctrl+W / refresh.
+    // Note: browsers only show it after the user has interacted with the page once.
+    window.addEventListener('beforeunload', function (e) {
+      e.preventDefault();
+      e.returnValue = '';
+    });
+  </script>
+  <style>
+    /* Locked (gray) state for the "Okay, you got me. Leave" button during its 18s timeout */
+    #escapeButton[data-locked="true"] {
+      background: #3a3d44 !important;
+      color: #8b8f98 !important;
+      border-color: #4a4e57 !important;
+      box-shadow: none !important;
+      filter: grayscale(1) !important;
+      cursor: not-allowed !important;
+    }
+    #escapeButton[data-locked="true"]::after {
+      content: " (" attr(data-wait) "s)";
+    }
+  </style>
+  <script>
+    // Locks #escapeButton for 18s from the moment the reveal screen actually appears.
+    // Self-contained: doesn't touch script.js. If the reveal is never detected, the button stays normal.
+    (function () {
+      var WAIT_MS = 18000;
+      var locked = false, started = false, unlockAt = 0, timer = null, poll = null;
+
+      function init() {
+        var btn = document.getElementById('escapeButton');
+        var reveal = document.getElementById('reveal');
+        var video = document.getElementById('rickVideo');
+        if (!btn || !reveal) return;
+
+        // Safety net: even if something re-enables the button, ignore clicks while locked.
+        window.addEventListener('click', function (e) {
+          if (locked && btn.contains(e.target)) {
+            e.preventDefault();
+            e.stopImmediatePropagation();
+          }
+        }, true);
+
+        function unlock() {
+          locked = false;
+          btn.removeAttribute('data-locked');
+          btn.removeAttribute('data-wait');
+          btn.disabled = false;
+          clearInterval(timer);
+        }
+
+        function update() {
+          var left = unlockAt - Date.now();
+          if (left <= 0) { unlock(); return; }
+          btn.setAttribute('data-wait', Math.ceil(left / 1000));
+        }
+
+        function start() {
+          if (started) return;
+          started = true;
+          clearInterval(poll);
+          locked = true;
+          unlockAt = Date.now() + WAIT_MS;
+          btn.setAttribute('data-locked', 'true');
+          btn.disabled = true;
+          update();
+          timer = setInterval(update, 250);
+        }
+
+        function check() {
+          if (started) return;
+          var shown = reveal.getAttribute('aria-hidden') === 'false';
+          if (!shown && video && !video.paused && video.currentTime > 0) shown = true;
+          if (!shown) {
+            var cs = getComputedStyle(reveal);
+            if (cs.display !== 'none' && cs.visibility !== 'hidden' && parseFloat(cs.opacity) > 0.05) {
+              var r = btn.getBoundingClientRect();
+              if (r.width > 0 && r.height > 0) {
+                var el = document.elementFromPoint(r.left + r.width / 2, r.top + r.height / 2);
+                if (el && btn.contains(el)) shown = true;
+              }
+            }
+          }
+          if (shown) start();
+        }
+
+        if (video) video.addEventListener('play', start);
+        poll = setInterval(check, 200);
+      }
+
+      if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+      else init();
+    })();
+  </script>
 </head>
 <body>
   <div class="grain" aria-hidden="true"></div>
@@ -89,9 +183,9 @@
     <div class="video-frame">
       <div class="video-heading"><p class="eyebrow">A SPECIAL PRESENTATION</p><h2>Well, this is<br><span>unexpected.</span></h2></div>
       <video id="rickVideo" playsinline preload="auto" poster="/assets/rickroll-poster.jpg">
-        <source src="/assets/rickroll.mp4" type="video/mp4">
+        <source src="/rickroll.mp4" type="video/mp4">
       </video>
-      <p class="video-caption">THANK YOU FOR YOUR CURIOSITY. YOU KNOW THE WORDS.</p>
+      <p class="video-caption">GET RICKROLLED LOOOOOOOL</p>
     </div>
     <button class="escape-button" id="escapeButton" type="button">Okay, you got me. Leave ↗</button>
     <p class="reveal-foot">THIS DETOUR WAS BROUGHT TO YOU BY 477MD.</p>
